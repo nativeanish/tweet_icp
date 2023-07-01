@@ -1,6 +1,8 @@
 import { $query, $update, Record, StableBTreeMap, Vec, match, Result, nat64, ic, Opt } from 'azle';
 import { v4 as uuidv4 } from 'uuid';
 
+
+let tweetCache = new Map<string, Tweet>();
 type Tweet = Record<{
     id: string;
     content: string;
@@ -10,6 +12,11 @@ type Tweet = Record<{
     createdAt: nat64;
     updatedAt: Opt<nat64>;
 }>
+
+function validateTweetPayload(payload: TweetPayload): boolean {
+  if (payload.content.length > 280) return false;
+  return true;
+}
 
 type Comment = Record<{
     id: string;
@@ -32,6 +39,14 @@ const tweetStorage = new StableBTreeMap<string, Tweet>(0, 44, 1024);
 
 $query;
 export function getTweet(id: string): Result<Tweet, string> {
+    if (tweetCache.has(id)) {
+      return Result.Ok(tweetCache.get(id));
+    }
+    const tweet = tweetStorage.get(id);
+    if (tweet.isSome()) {
+      tweetCache.set(id, tweet.unwrap());
+      return Result.Ok(tweet.unwrap());
+    }
     return match(tweetStorage.get(id), {
         Some: (tweet) => Result.Ok<Tweet, string>(tweet),
         None: () => Result.Err<Tweet, string>(`Tweet with id=${id} not found`)
@@ -45,6 +60,10 @@ export function getAllTweets(): Result<Vec<Tweet>, string> {
 
 $update;
 export function postTweet(payload: TweetPayload): Result<Tweet, string> {
+    if (!validateTweetPayload(payload)) {
+      return Result.Err<Tweet, string>("Invalid tweet payload");
+    }
+      
     const tweet: Tweet = {
         id: uuidv4(),
         content: payload.content,
