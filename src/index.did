@@ -1,0 +1,27 @@
+type Comment = record {
+  id : text;
+  content : text;
+  username : text;
+  createdAt : nat64;
+};
+type Tweet = record {
+  id : text;
+  content : text;
+  username : text;
+  createdAt : nat64;
+  likes : float64;
+  updatedAt : opt nat64;
+  comments : vec Comment;
+};
+type TweetPayload = record { content : text; username : text };
+type _AzleResult = variant { Ok : Tweet; Err : text };
+type _AzleResult_1 = variant { Ok : vec Tweet; Err : text };
+service : () -> {
+  addComment : (text, Comment) -> (_AzleResult);
+  addLike : (text) -> (_AzleResult);
+  deleteTweet : (text) -> (_AzleResult);
+  editTweet : (text, text) -> (_AzleResult);
+  getAllTweets : () -> (_AzleResult_1) query;
+  getTweet : (text) -> (_AzleResult) query;
+  postTweet : (TweetPayload) -> (_AzleResult);
+}
